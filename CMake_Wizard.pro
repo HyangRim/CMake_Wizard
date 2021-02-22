@@ -13,9 +13,11 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    cmakelists.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    cmakelists.h
 
 FORMS    += mainwindow.ui
 

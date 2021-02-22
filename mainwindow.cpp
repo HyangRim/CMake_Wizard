@@ -1,6 +1,9 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
+#include <QFileDialog>
+#include <QMessageBox>
+#include "cmakelists.h"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -56,7 +59,26 @@ void MainWindow::addSource(const QString & target, const QString& sources)
 
 void MainWindow::on_actionExport_triggered()
 {
-    QString projectName = ui->projectNameEdit->text();
+    QString dir = QFileDialog::getExistingDirectory(this, "Directory to save", QDir::currentPath(), QFileDialog::ShowDirsOnly);
+    if (dir.length() == 0){
+        QMessageBox::critical(this,"Failed to get dir", "Filed to get directory to save", QMessageBox::Ok);
+        return;
+    }
+    //QString projectName = ui->projectNameEdit->text();
+
+    auto filePath = QDir(dir).filePath("CMakeLists.txt");
+
+    QFile file(filePath);
+
+    if(!file.open(QIODevice::WriteOnly|QIODevice::Text))
+        return;
+
+    QTextStream stream(&file);
+
+    PrepareCMakeListsVariables();
+    stream << cmakeListsResult <<endl;
+
+    file.close();
 }
 
 void MainWindow::on_flagsAddBtn_clicked()
@@ -98,18 +120,66 @@ void MainWindow::currentTabChanged(int index)
     //qDebug()<<"Current tab index "<<index<<endl;
 
     if(index == 4){
-        ui->previewEdit->tex
+        //ui->previewEdit->tex
+        PrepareCMakeListsVariables();
     }
-    else if(index == 3){
+}
 
-    }
-    else if(index == 2){
 
-    }
-    else if(index == 1){
+void MainWindow::PrepareCMakeListsVariables()
+{
+    CMakeLists cmakelists;
 
-    }
-    else if(index == 0){
 
+
+    //project tab
+    QString projectName = ui->projectNameEdit->text();
+
+    cmakelists.SetProjectName(projectName);
+
+    //flags tab
+    auto flagCount = ui->flagsTable->rowCount();
+    for(int rowIndex = 0; rowIndex< flagCount ; rowIndex++){
+        auto keyItem = ui->flagsTable->item(rowIndex, 0);
+        auto valueItem =  ui->flagsTable->item(rowIndex, 1);
+
+        //QString, QString
+        QString flagkey = keyItem->text();
+        QString flagvalue = valueItem->text();
+
+        cmakelists.AddCMakeFlags(flagkey, flagvalue);
     }
+
+    //preprocessor tab
+    if(ui->definesEdit->toPlainText().size()> 0 ){
+        QStringList defines = ui->definesEdit->toPlainText().split(QRegExp("\\ |\\;|\\n"));
+        for(int index = 0; index <defines.length(); index++){
+            qDebug() <<defines.at(index)<<endl;
+            cmakelists.AddDefine(defines.at(index));
+        }
+    }
+
+    //directory tab
+    //1.include dir(QListWidget)
+    for (int row = 0; row <ui->includeList->count();row++){
+        auto item = ui->includeList->item(row);// QListWidgetItem
+        //QString includeDir = item->text();
+        cmakelists.AddIncludeDirectory(item->text());
+    }
+    //2.sources(QTableWidget)
+    for (int row =0;row < ui->sourcesTable->rowCount();row++){
+        auto target = ui->sourcesTable->item(row, 0);
+        auto sources = ui->sourcesTable->item(row,1);
+        //target, source files
+        cmakelists.AddSource(target->text(), sources->text());
+    }
+
+    //preview tab
+    QString previewCMakeLists_txt = cmakelists.GenerateCMakeLists();
+
+    ui->previewEdit->clear();
+    ui->previewEdit->appendPlainText(previewCMakeLists_txt);
+
+
+    cmakeListsResult = previewCMakeLists_txt;
 }

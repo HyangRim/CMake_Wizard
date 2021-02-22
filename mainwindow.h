@@ -23,6 +23,8 @@ public:
     void InsertNewIncludeDirectory(const QString&);
     void addSource(const QString&, const QString& sources);
 
+    void PrepareCMakeListsVariables();
+
 private slots:
     void on_actionExport_triggered();
 
@@ -42,6 +44,7 @@ private slots:
 
 private:
     Ui::MainWindow *ui;
+    QString cmakeListsResult;
 };
 
 #endif // MAINWINDOW_H
